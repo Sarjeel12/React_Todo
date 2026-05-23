@@ -2,43 +2,27 @@ import { useState, useEffect } from "react";
 import { supabase } from "../config/supabase.config";
 
 const Todo = () => {
-  const [todos, setTodos] = useState([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [todos, setTodos] = useState([]);
+  const [editId, setEditId] = useState(null);
 
-  const [editTodo, setEditTodo] = useState(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-
-  // GET TODOS
-  // const getTodos = async () => {
-  //   const { data, error } = await supabase.from("todos").select("*");
-
-  //   console.log("FETCH TODOS:", data, error); // DEBUG
-
-  //   if (!error) {
-  //     setTodos(data || []);
-  //   } else {
-  //     console.log(error.message);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   getTodos();
-  // }, []);
+  // FETCH
   const getTodos = async () => {
-    const { data, error } = await supabase.from("todos").select("*");
+    const { data, error } = await supabase
+      .from("todos")
+      .select("*")
+      .order("id", { ascending: false });
 
-    console.log("DATA:", data);
-    console.log("ERROR:", error);
-
-    setTodos(data || []);
+    if (!error) setTodos(data);
   };
 
-  // ADD TODO
-  const addTodo = async () => {
-    console.log("ADDING:", title, description);
+  useEffect(() => {
+    getTodos();
+  }, []);
 
+  // ADD
+  const addTodo = async () => {
     const { error } = await supabase
       .from("todos")
       .insert([{ title, description }]);
@@ -47,110 +31,111 @@ const Todo = () => {
       setTitle("");
       setDescription("");
       getTodos();
-    } else {
-      console.log(error.message);
     }
   };
 
-  // DELETE TODO
+  // DELETE
   const deleteTodo = async (id) => {
-    const { error } = await supabase.from("todos").delete().eq("id", id);
-
-    if (!error) getTodos();
-    else console.log(error.message);
+    await supabase.from("todos").delete().eq("id", id);
+    getTodos();
   };
 
-  // START EDIT
-  const startEdit = (todo) => {
-    setEditTodo(todo);
-    setEditTitle(todo.title);
-    setEditDescription(todo.description);
+  // EDIT
+  const editTodo = (todo) => {
+    setTitle(todo.title);
+    setDescription(todo.description);
+    setEditId(todo.id);
   };
 
-  // UPDATE TODO
+  // UPDATE
   const updateTodo = async () => {
-    const { error } = await supabase
+    await supabase
       .from("todos")
-      .update({
-        title: editTitle,
-        description: editDescription,
-      })
-      .eq("id", editTodo.id);
+      .update({ title, description })
+      .eq("id", editId);
 
-    if (!error) {
-      setEditTodo(null);
-      setEditTitle("");
-      setEditDescription("");
-      getTodos();
-    } else {
-      console.log(error.message);
-    }
+    setTitle("");
+    setDescription("");
+    setEditId(null);
+    getTodos();
   };
 
-  console.log("TODOS STATE:", todos);
   return (
-    <div>
-      <h2>Todo List</h2>
+    <div className="min-h-screen bg-gray-100 flex justify-center p-6">
+      <div className="w-full max-w-2xl">
+        {/* HEADER */}
+        <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
+          Todo App
+        </h1>
 
-      {/* INPUTS */}
-      <h3>Title</h3>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Title"
-      />
+        {/* INPUT BOX */}
+        <div className="bg-white p-5 rounded-2xl shadow-md mb-6">
+          <input
+            className="w-full p-3 border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            type="text"
+            placeholder="Enter title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
 
-      <h3>Description</h3>
-      <input
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        placeholder="Description"
-      />
+          <input
+            className="w-full p-3 border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            type="text"
+            placeholder="Enter description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
 
-      <button onClick={addTodo}>Add Todo</button>
+          {editId ? (
+            <button
+              onClick={updateTodo}
+              className="w-full bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg font-semibold"
+            >
+              Update Todo
+            </button>
+          ) : (
+            <button
+              onClick={addTodo}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg font-semibold"
+            >
+              Add Todo
+            </button>
+          )}
+        </div>
 
-      {/* LIST */}
-      {todos?.length === 0 ? (
-        <p>No todos found</p>
-      ) : (
-        todos?.map((todo) => (
-          <li
-            key={todo.id}
-            style={{
-              border: "1px solid black",
-              margin: "10px",
-              padding: "10px",
-            }}
-          >
-            {editTodo?.id === todo.id ? (
+        {/* TODO LIST */}
+        <div className="space-y-4">
+          {todos.map((todo) => (
+            <div
+              key={todo.id}
+              className="bg-white p-4 rounded-2xl shadow flex justify-between items-start"
+            >
               <div>
-                <input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  placeholder="Title"
-                />
-
-                <input
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder="Description"
-                />
-
-                <button onClick={updateTodo}>Update</button>
-                <button onClick={() => setEditTodo(null)}>Cancel</button>
+                <h2 className="text-lg font-semibold text-gray-800">
+                  {todo.title}
+                </h2>
+                <p className="text-gray-500">{todo.description}</p>
               </div>
-            ) : (
-              <>
-                <h3>{todo.title}</h3>
-                <p>{todo.description}</p>
 
-                <button onClick={() => startEdit(todo)}>Edit</button>
-                <button onClick={() => deleteTodo(todo.id)}>Delete</button>
-              </>
-            )}
-          </li>
-        ))
-      )}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => editTodo(todo)}
+                  className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded-lg text-sm"
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={() => deleteTodo(todo.id)}
+                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

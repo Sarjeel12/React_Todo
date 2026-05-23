@@ -1,11 +1,9 @@
 import Todo from "./components/Todo";
 
-function App() {
+export default function App() {
   return (
-    <div className="App">
+    <div>
       <Todo />
     </div>
   );
 }
-
-export default App;
